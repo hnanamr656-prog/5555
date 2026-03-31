@@ -1,0 +1,183 @@
+<!DOCTYPE html><html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>برنامج AH STORE - مدير ومسوقين</title>
+<style>
+body { font-family: Arial, sans-serif; background: #f0f8ff; text-align: center; padding: 30px; }
+input, button, textarea { padding: 10px; font-size: 16px; margin: 5px; }
+.card { background: #ffeebb; padding: 20px; margin: 10px auto; border-radius: 10px; width: 80%; }
+table { margin: 20px auto; border-collapse: collapse; width: 90%; }
+th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+th { background-color: #ffebcc; }
+#mainDiv, #managerDiv { display: none; }
+</style>
+</head>
+<body><h1>برنامج AH STORE - مدير ومسوقين</h1><div id="loginDiv">
+    <input type="text" id="username" placeholder="اكتب اسمك">
+    <button onclick="login()">تسجيل الدخول</button>
+</div><div id="mainDiv">
+    <h2>مرحبا <span id="currentUser"></span></h2><div class="card">
+    <h3>فكرة اليوم</h3>
+    <p id="idea"></p>
+    <h3>نصيحة تسويقية</h3>
+    <p id="tip"></p>
+    <h3>تحفيزك اليومي</h3>
+    <p id="motivation"></p>
+</div>
+
+<div class="card">
+    <h3>اقتراحاتك اليومية</h3>
+    <textarea id="suggestionInput" placeholder="اكتب اقتراحك هنا"></textarea><br>
+    <button onclick="addSuggestion()">أضف الاقتراح</button>
+    <ul id="suggestionList"></ul>
+</div>
+
+<div class="card">
+    <h3>ملاحظاتك اليومية</h3>
+    <textarea id="commentInput" placeholder="اكتب ملاحظتك هنا"></textarea><br>
+    <button onclick="addComment()">أضف الملاحظة</button>
+    <ul id="commentList"></ul>
+</div>
+
+<button onclick="logout()">تسجيل الخروج</button>
+
+</div><div id="managerDiv">
+    <h2>لوحة المدير</h2>
+    <table id="managerTable">
+        <thead>
+            <tr>
+                <th>المسوق</th>
+                <th>ملاحظات اليوم</th>
+                <th>اقتراحات اليوم</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <button onclick="logout()">تسجيل الخروج</button>
+</div><script>
+let currentUser = null;
+
+// تحميل البيانات من localStorage أو إنشاء جديد
+let salesData = JSON.parse(localStorage.getItem('salesData')) || {};
+
+// 100 فكرة + نصائح + تحفيز
+const ideas = Array.from({length:100}, (_,i)=>`فكرة رقم ${i+1}: استخدم أسلوب جديد لجذب العملاء`);
+const tips = Array.from({length:100}, (_,i)=>`نصيحة رقم ${i+1}: جرب ميزة جديدة للتسويق`);
+const motivations = Array.from({length:100}, (_,i)=>`تحفيز رقم ${i+1}: كل يوم فرصة جديدة للنجاح! 💪`);
+
+function login(){
+    const username = document.getElementById("username").value.trim();
+    if(!username){ alert("اكتب اسمك من فضلك!"); return; }
+    currentUser = username;
+
+    if(username === "Manager"){
+        document.getElementById("loginDiv").style.display="none";
+        document.getElementById("managerDiv").style.display="block";
+        renderManager();
+        return;
+    }
+
+    if(!salesData[username]) salesData[username] = {comments:[], suggestions:[], seenIndices:{idea:null, tip:null, motivation:null}};
+    saveData();
+
+    document.getElementById("loginDiv").style.display="none";
+    document.getElementById("mainDiv").style.display="block";
+    document.getElementById("currentUser").innerText = currentUser;
+
+    showContent();
+    loadComments();
+    loadSuggestions();
+    checkMotivation();
+}
+
+function logout(){
+    currentUser = null;
+    document.getElementById("loginDiv").style.display="block";
+    document.getElementById("mainDiv").style.display="none";
+    document.getElementById("managerDiv").style.display="none";
+    document.getElementById("username").value = "";
+    saveData();
+}
+
+function getRandom(arr,key){
+    const today = new Date().toLocaleDateString();
+    const userData = salesData[currentUser];
+    if(userData.seenIndices[key] && userData.seenIndices[key].date === today){
+        return arr[userData.seenIndices[key].index];
+    }
+    let idx = Math.floor(Math.random()*arr.length);
+    userData.seenIndices[key] = {index: idx, date: today};
+    saveData();
+    return arr[idx];
+}
+
+function showContent(){
+    document.getElementById("idea").innerText = getRandom(ideas,'idea');
+    document.getElementById("tip").innerText = getRandom(tips,'tip');
+    document.getElementById("motivation").innerText = getRandom(motivations,'motivation');
+}
+
+function addComment(){
+    const val = document.getElementById("commentInput").value.trim();
+    if(val){
+        salesData[currentUser].comments.push(val);
+        document.getElementById("commentInput").value="";
+        loadComments();
+        saveData();
+    }
+}
+function loadComments(){
+    const ul = document.getElementById("commentList");
+    ul.innerHTML="";
+    salesData[currentUser].comments.forEach(c=>{
+        const li=document.createElement("li");
+        li.innerText=c;
+        ul.appendChild(li);
+    });
+}
+
+function addSuggestion(){
+    const val = document.getElementById("suggestionInput").value.trim();
+    if(val){
+        salesData[currentUser].suggestions.push(val);
+        document.getElementById("suggestionInput").value="";
+        loadSuggestions();
+        saveData();
+    }
+}
+function loadSuggestions(){
+    const ul = document.getElementById("suggestionList");
+    ul.innerHTML="";
+    salesData[currentUser].suggestions.forEach(s=>{
+        const li=document.createElement("li");
+        li.innerText=s;
+        ul.appendChild(li);
+    });
+}
+
+function renderManager(){
+    const tbody = document.querySelector("#managerTable tbody");
+    tbody.innerHTML="";
+    for(let user in salesData){
+        if(user === 'Manager') continue;
+        const tr=document.createElement("tr");
+        tr.innerHTML=`<td>${user}</td><td>${salesData[user].comments.join(", ")}</td><td>${salesData[user].suggestions.join(", ")}</td>`;
+        tbody.appendChild(tr);
+    }
+}
+
+function checkMotivation(){
+    const lastVisit = localStorage.getItem("lastVisit_"+currentUser);
+    const today = new Date().toLocaleDateString();
+    if(lastVisit!==today){
+        alert("💡 افتح البرنامج اليوم للحصول على فكرة جديدة وتحفيزك اليومي!");
+        localStorage.setItem("lastVisit_"+currentUser,today);
+        showContent();
+    }
+}
+
+function saveData(){
+    localStorage.setItem('salesData', JSON.stringify(salesData));
+}
+</script></body>
+</html>
