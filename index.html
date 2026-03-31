@@ -1,87 +1,85 @@
 <!DOCTYPE html><html lang="ar">
 <head>
 <meta charset="UTF-8">
-<title>برنامج AH STORE - تحفيز بصري</title>
+<title>برنامج AH STORE - مدير ومسوقين</title>
 <style>
-body { font-family: Arial, sans-serif; background: linear-gradient(to right, #e0f7fa, #ffe0b2); text-align: center; padding: 20px; }
-input, button, textarea { padding: 10px; font-size: 16px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; }
-.card { background: rgba(255, 235, 204, 0.8); padding: 20px; margin: 15px auto; border-radius: 15px; width: 80%; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-h2, h3 { color: #ff7043; }
-ul { list-style: none; padding: 0; }
-li { background: #fff3e0; margin: 5px 0; padding: 10px; border-radius: 10px; display: flex; align-items: center; }
-li::before { content: "💡"; margin-right: 10px; }
+body { font-family: Arial, sans-serif; background: #f0f8ff; text-align: center; padding: 30px; }
+input, button, textarea { padding: 10px; font-size: 16px; margin: 5px; }
+.card { background: #ffeebb; padding: 20px; margin: 10px auto; border-radius: 10px; width: 80%; }
+table { margin: 20px auto; border-collapse: collapse; width: 90%; }
+th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+th { background-color: #ffebcc; }
 #mainDiv, #managerDiv { display: none; }
-.alert { background: #ffd54f; padding: 10px; margin: 10px auto; width: 80%; border-radius: 10px; color: #4e342e; font-weight: bold; }
 </style>
 </head>
-<body><h1>برنامج AH STORE - لوحة تحفيز بصري</h1><div id="loginDiv">
+<body><h1>برنامج AH STORE - مدير ومسوقين</h1><div id="loginDiv">
     <input type="text" id="username" placeholder="اكتب اسمك">
     <button onclick="login()">تسجيل الدخول</button>
 </div><div id="mainDiv">
-    <h2>مرحبا <span id="currentUser"></span></h2><div class="card" id="dailyCard">
-    <h3>فكرة اليوم ✨</h3>
+    <h2>مرحبا <span id="currentUser"></span></h2><div class="card">
+    <h3>فكرة اليوم</h3>
     <p id="idea"></p>
-    <h3>نصيحة تسويقية 💡</h3>
+    <h3>نصيحة تسويقية</h3>
     <p id="tip"></p>
-    <h3>تحفيزك اليومي 🚀</h3>
+    <h3>تحفيزك اليومي</h3>
     <p id="motivation"></p>
 </div>
 
 <div class="card">
-    <h3>اقتراحاتك اليومية 📝</h3>
+    <h3>اقتراحاتك اليومية</h3>
     <textarea id="suggestionInput" placeholder="اكتب اقتراحك هنا"></textarea><br>
     <button onclick="addSuggestion()">أضف الاقتراح</button>
     <ul id="suggestionList"></ul>
 </div>
 
 <div class="card">
-    <h3>ملاحظاتك اليومية 📝</h3>
+    <h3>ملاحظاتك اليومية</h3>
     <textarea id="commentInput" placeholder="اكتب ملاحظتك هنا"></textarea><br>
     <button onclick="addComment()">أضف الملاحظة</button>
     <ul id="commentList"></ul>
 </div>
 
-<div class="alert" id="dailyAlert"></div>
-
 <button onclick="logout()">تسجيل الخروج</button>
 
 </div><div id="managerDiv">
-    <h2>لوحة المدير 📊</h2>
+    <h2>لوحة المدير</h2>
     <table id="managerTable">
         <thead>
             <tr>
                 <th>المسوق</th>
                 <th>ملاحظات اليوم</th>
                 <th>اقتراحات اليوم</th>
+                <th>إجمالي النقاط</th>
             </tr>
         </thead>
         <tbody></tbody>
     </table>
-    <div id="dailyReport" class="card"></div>
+    <div id="dailyReport"></div>
     <button onclick="logout()">تسجيل الخروج</button>
 </div><script>
 let currentUser = null;
-let salesData = JSON.parse(localStorage.getItem('salesData')) || {};
-const managers = ["Manager1", "Manager2"];
-const ideas = Array.from({length:100}, (_,i)=>`فكرة رقم ${i+1}: استخدم أسلوب جديد لجذب العملاء`);
-const tips = Array.from({length:100}, (_,i)=>`نصيحة رقم ${i+1}: جرب ميزة جديدة للتسويق`);
-const motivations = Array.from({length:100}, (_,i)=>`تحفيز رقم ${i+1}: كل يوم فرصة جديدة للنجاح! 💪`);
+const ideas = ["استخدم فيديو قصير للمنتج", "اعرض المنتج بطريقة مختلفة", "صوّر المنتج مع خلفية جذابة", "اعمل خصم محدود", "اصنع قصة صغيرة حول المنتج"];
+const tips = ["نشر المحتوى باستمرار يجذب متابعين أكثر", "استخدم الهاشتاجات المناسبة", "ركز على ميزة واحدة في كل منشور", "التفاعل مع التعليقات يزيد المبيعات"];
+const motivations = ["كل يوم فرصة جديدة للنجاح! 💪", "ابدأ اليوم وكن الأفضل! 🚀", "التحديات تصنع الأفضل! 🌟", "كل خطوة صغيرة تقربك من الهدف 💖"];
+let usedIndices = {idea:[], tip:[], motivation:[]};
 
 function login(){
     const username = document.getElementById("username").value.trim();
     if(!username){ alert("اكتب اسمك من فضلك!"); return; }
     currentUser = username;
+    
+    if(!localStorage.getItem("salesData")) localStorage.setItem("salesData", JSON.stringify({}));
+    let salesData = JSON.parse(localStorage.getItem("salesData"));
 
-    if(managers.includes(username)){
+    if(username.toLowerCase() === "manager"){
         document.getElementById("loginDiv").style.display="none";
         document.getElementById("managerDiv").style.display="block";
         renderManager();
-        renderDailyReport();
         return;
     }
 
-    if(!salesData[username]) salesData[username] = {comments:[], suggestions:[], seenIndices:{idea:null, tip:null, motivation:null}};
-    saveData();
+    if(!salesData[username]) salesData[username] = {points:0, comments:[], suggestions:[], lastVisit: null};
+    localStorage.setItem("salesData", JSON.stringify(salesData));
 
     document.getElementById("loginDiv").style.display="none";
     document.getElementById("mainDiv").style.display="block";
@@ -99,18 +97,13 @@ function logout(){
     document.getElementById("mainDiv").style.display="none";
     document.getElementById("managerDiv").style.display="none";
     document.getElementById("username").value = "";
-    saveData();
 }
 
 function getRandom(arr,key){
-    const today = new Date().toLocaleDateString();
-    const userData = salesData[currentUser];
-    if(userData.seenIndices[key] && userData.seenIndices[key].date === today){
-        return arr[userData.seenIndices[key].index];
-    }
-    let idx = Math.floor(Math.random()*arr.length);
-    userData.seenIndices[key] = {index: idx, date: today};
-    saveData();
+    if(usedIndices[key].length === arr.length) usedIndices[key]=[];
+    let available = arr.map((_,i)=>i).filter(i=>!usedIndices[key].includes(i));
+    let idx = available[Math.floor(Math.random()*available.length)];
+    usedIndices[key].push(idx);
     return arr[idx];
 }
 
@@ -123,18 +116,21 @@ function showContent(){
 function addComment(){
     const val = document.getElementById("commentInput").value.trim();
     if(val){
+        let salesData = JSON.parse(localStorage.getItem("salesData"));
         salesData[currentUser].comments.push({text: val, date: new Date().toLocaleDateString()});
+        localStorage.setItem("salesData", JSON.stringify(salesData));
         document.getElementById("commentInput").value="";
         loadComments();
-        saveData();
     }
 }
+
 function loadComments(){
     const ul = document.getElementById("commentList");
     ul.innerHTML="";
+    let salesData = JSON.parse(localStorage.getItem("salesData"));
     salesData[currentUser].comments.forEach(c=>{
         const li=document.createElement("li");
-        li.innerText=c.text;
+        li.innerText=`${c.date}: ${c.text}`;
         ul.appendChild(li);
     });
 }
@@ -142,67 +138,57 @@ function loadComments(){
 function addSuggestion(){
     const val = document.getElementById("suggestionInput").value.trim();
     if(val){
+        let salesData = JSON.parse(localStorage.getItem("salesData"));
         salesData[currentUser].suggestions.push({text: val, date: new Date().toLocaleDateString()});
+        localStorage.setItem("salesData", JSON.stringify(salesData));
         document.getElementById("suggestionInput").value="";
         loadSuggestions();
-        saveData();
     }
 }
+
 function loadSuggestions(){
     const ul = document.getElementById("suggestionList");
     ul.innerHTML="";
+    let salesData = JSON.parse(localStorage.getItem("salesData"));
     salesData[currentUser].suggestions.forEach(s=>{
         const li=document.createElement("li");
-        li.innerText=s.text;
+        li.innerText=`${s.date}: ${s.text}`;
         ul.appendChild(li);
     });
 }
 
 function renderManager(){
+    let salesData = JSON.parse(localStorage.getItem("salesData"));
     const tbody = document.querySelector("#managerTable tbody");
     tbody.innerHTML="";
+    let today = new Date().toLocaleDateString();
+    let dailyReportText = `اليوم: ${today}<br>`;
+    let dailyUsers=0, dailyComments=0, dailySuggestions=0;
     for(let user in salesData){
-        if(managers.includes(user)) continue;
-        const userCommentsToday = salesData[user].comments.filter(c => c.date === new Date().toLocaleDateString());
-        const userSuggestionsToday = salesData[user].suggestions.filter(s => s.date === new Date().toLocaleDateString());
-        const tr=document.createElement("tr");
-        tr.innerHTML=`<td>${user}</td><td>${userCommentsToday.map(c=>c.text).join(", ")}</td><td>${userSuggestionsToday.map(s=>s.text).join(", ")}</td>`;
-        tbody.appendChild(tr);
-    }
-}
-
-function renderDailyReport(){
-    const reportDiv = document.getElementById("dailyReport");
-    const today = new Date().toLocaleDateString();
-    let numUsers = 0;
-    let totalComments = 0;
-    let totalSuggestions = 0;
-    for(let user in salesData){
-        if(managers.includes(user)) continue;
+        if(user.toLowerCase()==="manager") continue;
         const commentsToday = salesData[user].comments.filter(c=>c.date===today);
         const suggestionsToday = salesData[user].suggestions.filter(s=>s.date===today);
-        if(commentsToday.length || suggestionsToday.length) numUsers++;
-        totalComments += commentsToday.length;
-        totalSuggestions += suggestionsToday.length;
+        if(commentsToday.length || suggestionsToday.length) dailyUsers++;
+        dailyComments += commentsToday.length;
+        dailySuggestions += suggestionsToday.length;
+        const tr=document.createElement("tr");
+        tr.innerHTML=`<td>${user}</td><td>${commentsToday.map(c=>c.text).join(", ")}</td><td>${suggestionsToday.map(s=>s.text).join(", ")}</td><td>${salesData[user].points}</td>`;
+        tbody.appendChild(tr);
     }
-    reportDiv.innerHTML = `<h3>تقرير اليوم</h3>عدد المسوقين المسجلين اليوم: ${numUsers}<br>عدد الملاحظات اليوم: ${totalComments}<br>عدد الاقتراحات اليوم: ${totalSuggestions}`;
+    dailyReportText += `عدد المسوقين اليوم: ${dailyUsers}, عدد الملاحظات: ${dailyComments}, عدد الاقتراحات: ${dailySuggestions}`;
+    document.getElementById("dailyReport").innerHTML=dailyReportText;
 }
 
 function checkMotivation(){
-    const lastVisit = localStorage.getItem("lastVisit_"+currentUser);
+    let salesData = JSON.parse(localStorage.getItem("salesData"));
     const today = new Date().toLocaleDateString();
-    if(lastVisit!==today){
-        document.getElementById('dailyAlert').innerText = "💡 افتح البرنامج اليوم للحصول على فكرة جديدة وتحفيزك اليومي!";
-        localStorage.setItem("lastVisit_"+currentUser,today);
-        showContent();
-    } else {
-        document.getElementById('dailyAlert').innerText = "مرحباً بك! 🌟";
+    if(!salesData[currentUser].lastVisit || salesData[currentUser].lastVisit!==today){
+        alert("💡 افتح البرنامج اليوم للحصول على فكرة جديدة وتحفيزك اليومي!");
+        salesData[currentUser].lastVisit = today;
+        localStorage.setItem("salesData", JSON.stringify(salesData));
     }
 }
 
-function saveData(){
-    localStorage.setItem('salesData', JSON.stringify(salesData));
-}
-
+setInterval(()=>{if(currentUser && currentUser.toLowerCase() !== "manager") showContent();},1000*60*60*24);
 </script></body>
 </html>
