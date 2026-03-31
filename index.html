@@ -1,48 +1,52 @@
 <!DOCTYPE html><html lang="ar">
 <head>
 <meta charset="UTF-8">
-<title>برنامج AH STORE - مدير ومسوقين</title>
+<title>برنامج AH STORE - تحفيز بصري</title>
 <style>
-body { font-family: Arial, sans-serif; background: #f0f8ff; text-align: center; padding: 30px; }
-input, button, textarea { padding: 10px; font-size: 16px; margin: 5px; }
-.card { background: #ffeebb; padding: 20px; margin: 10px auto; border-radius: 10px; width: 80%; }
-table { margin: 20px auto; border-collapse: collapse; width: 90%; }
-th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
-th { background-color: #ffebcc; }
+body { font-family: Arial, sans-serif; background: linear-gradient(to right, #e0f7fa, #ffe0b2); text-align: center; padding: 20px; }
+input, button, textarea { padding: 10px; font-size: 16px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; }
+.card { background: rgba(255, 235, 204, 0.8); padding: 20px; margin: 15px auto; border-radius: 15px; width: 80%; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+h2, h3 { color: #ff7043; }
+ul { list-style: none; padding: 0; }
+li { background: #fff3e0; margin: 5px 0; padding: 10px; border-radius: 10px; display: flex; align-items: center; }
+li::before { content: "💡"; margin-right: 10px; }
 #mainDiv, #managerDiv { display: none; }
+.alert { background: #ffd54f; padding: 10px; margin: 10px auto; width: 80%; border-radius: 10px; color: #4e342e; font-weight: bold; }
 </style>
 </head>
-<body><h1>برنامج AH STORE - مدير ومسوقين</h1><div id="loginDiv">
+<body><h1>برنامج AH STORE - لوحة تحفيز بصري</h1><div id="loginDiv">
     <input type="text" id="username" placeholder="اكتب اسمك">
     <button onclick="login()">تسجيل الدخول</button>
 </div><div id="mainDiv">
-    <h2>مرحبا <span id="currentUser"></span></h2><div class="card">
-    <h3>فكرة اليوم</h3>
+    <h2>مرحبا <span id="currentUser"></span></h2><div class="card" id="dailyCard">
+    <h3>فكرة اليوم ✨</h3>
     <p id="idea"></p>
-    <h3>نصيحة تسويقية</h3>
+    <h3>نصيحة تسويقية 💡</h3>
     <p id="tip"></p>
-    <h3>تحفيزك اليومي</h3>
+    <h3>تحفيزك اليومي 🚀</h3>
     <p id="motivation"></p>
 </div>
 
 <div class="card">
-    <h3>اقتراحاتك اليومية</h3>
+    <h3>اقتراحاتك اليومية 📝</h3>
     <textarea id="suggestionInput" placeholder="اكتب اقتراحك هنا"></textarea><br>
     <button onclick="addSuggestion()">أضف الاقتراح</button>
     <ul id="suggestionList"></ul>
 </div>
 
 <div class="card">
-    <h3>ملاحظاتك اليومية</h3>
+    <h3>ملاحظاتك اليومية 📝</h3>
     <textarea id="commentInput" placeholder="اكتب ملاحظتك هنا"></textarea><br>
     <button onclick="addComment()">أضف الملاحظة</button>
     <ul id="commentList"></ul>
 </div>
 
+<div class="alert" id="dailyAlert"></div>
+
 <button onclick="logout()">تسجيل الخروج</button>
 
 </div><div id="managerDiv">
-    <h2>لوحة المدير</h2>
+    <h2>لوحة المدير 📊</h2>
     <table id="managerTable">
         <thead>
             <tr>
@@ -188,14 +192,17 @@ function checkMotivation(){
     const lastVisit = localStorage.getItem("lastVisit_"+currentUser);
     const today = new Date().toLocaleDateString();
     if(lastVisit!==today){
-        alert("💡 افتح البرنامج اليوم للحصول على فكرة جديدة وتحفيزك اليومي!");
+        document.getElementById('dailyAlert').innerText = "💡 افتح البرنامج اليوم للحصول على فكرة جديدة وتحفيزك اليومي!";
         localStorage.setItem("lastVisit_"+currentUser,today);
         showContent();
+    } else {
+        document.getElementById('dailyAlert').innerText = "مرحباً بك! 🌟";
     }
 }
 
 function saveData(){
     localStorage.setItem('salesData', JSON.stringify(salesData));
 }
+
 </script></body>
 </html>
