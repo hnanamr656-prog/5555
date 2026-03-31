@@ -53,14 +53,12 @@ th { background-color: #ffebcc; }
         </thead>
         <tbody></tbody>
     </table>
+    <div id="dailyReport" class="card"></div>
     <button onclick="logout()">تسجيل الخروج</button>
 </div><script>
 let currentUser = null;
-
-// تحميل البيانات من localStorage أو إنشاء جديد
 let salesData = JSON.parse(localStorage.getItem('salesData')) || {};
-
-// 100 فكرة + نصائح + تحفيز
+const managers = ["Manager1", "Manager2"];
 const ideas = Array.from({length:100}, (_,i)=>`فكرة رقم ${i+1}: استخدم أسلوب جديد لجذب العملاء`);
 const tips = Array.from({length:100}, (_,i)=>`نصيحة رقم ${i+1}: جرب ميزة جديدة للتسويق`);
 const motivations = Array.from({length:100}, (_,i)=>`تحفيز رقم ${i+1}: كل يوم فرصة جديدة للنجاح! 💪`);
@@ -70,10 +68,11 @@ function login(){
     if(!username){ alert("اكتب اسمك من فضلك!"); return; }
     currentUser = username;
 
-    if(username === "Manager"){
+    if(managers.includes(username)){
         document.getElementById("loginDiv").style.display="none";
         document.getElementById("managerDiv").style.display="block";
         renderManager();
+        renderDailyReport();
         return;
     }
 
@@ -120,7 +119,7 @@ function showContent(){
 function addComment(){
     const val = document.getElementById("commentInput").value.trim();
     if(val){
-        salesData[currentUser].comments.push(val);
+        salesData[currentUser].comments.push({text: val, date: new Date().toLocaleDateString()});
         document.getElementById("commentInput").value="";
         loadComments();
         saveData();
@@ -131,7 +130,7 @@ function loadComments(){
     ul.innerHTML="";
     salesData[currentUser].comments.forEach(c=>{
         const li=document.createElement("li");
-        li.innerText=c;
+        li.innerText=c.text;
         ul.appendChild(li);
     });
 }
@@ -139,7 +138,7 @@ function loadComments(){
 function addSuggestion(){
     const val = document.getElementById("suggestionInput").value.trim();
     if(val){
-        salesData[currentUser].suggestions.push(val);
+        salesData[currentUser].suggestions.push({text: val, date: new Date().toLocaleDateString()});
         document.getElementById("suggestionInput").value="";
         loadSuggestions();
         saveData();
@@ -150,7 +149,7 @@ function loadSuggestions(){
     ul.innerHTML="";
     salesData[currentUser].suggestions.forEach(s=>{
         const li=document.createElement("li");
-        li.innerText=s;
+        li.innerText=s.text;
         ul.appendChild(li);
     });
 }
@@ -159,11 +158,30 @@ function renderManager(){
     const tbody = document.querySelector("#managerTable tbody");
     tbody.innerHTML="";
     for(let user in salesData){
-        if(user === 'Manager') continue;
+        if(managers.includes(user)) continue;
+        const userCommentsToday = salesData[user].comments.filter(c => c.date === new Date().toLocaleDateString());
+        const userSuggestionsToday = salesData[user].suggestions.filter(s => s.date === new Date().toLocaleDateString());
         const tr=document.createElement("tr");
-        tr.innerHTML=`<td>${user}</td><td>${salesData[user].comments.join(", ")}</td><td>${salesData[user].suggestions.join(", ")}</td>`;
+        tr.innerHTML=`<td>${user}</td><td>${userCommentsToday.map(c=>c.text).join(", ")}</td><td>${userSuggestionsToday.map(s=>s.text).join(", ")}</td>`;
         tbody.appendChild(tr);
     }
+}
+
+function renderDailyReport(){
+    const reportDiv = document.getElementById("dailyReport");
+    const today = new Date().toLocaleDateString();
+    let numUsers = 0;
+    let totalComments = 0;
+    let totalSuggestions = 0;
+    for(let user in salesData){
+        if(managers.includes(user)) continue;
+        const commentsToday = salesData[user].comments.filter(c=>c.date===today);
+        const suggestionsToday = salesData[user].suggestions.filter(s=>s.date===today);
+        if(commentsToday.length || suggestionsToday.length) numUsers++;
+        totalComments += commentsToday.length;
+        totalSuggestions += suggestionsToday.length;
+    }
+    reportDiv.innerHTML = `<h3>تقرير اليوم</h3>عدد المسوقين المسجلين اليوم: ${numUsers}<br>عدد الملاحظات اليوم: ${totalComments}<br>عدد الاقتراحات اليوم: ${totalSuggestions}`;
 }
 
 function checkMotivation(){
