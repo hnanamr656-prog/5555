@@ -1,194 +1,128 @@
-<!DOCTYPE html><html lang="ar">
+<!DOCTYPE html><html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>برنامج AH STORE - مدير ومسوقين</title>
-<style>
-body { font-family: Arial, sans-serif; background: #f0f8ff; text-align: center; padding: 30px; }
-input, button, textarea { padding: 10px; font-size: 16px; margin: 5px; }
-.card { background: #ffeebb; padding: 20px; margin: 10px auto; border-radius: 10px; width: 80%; }
-table { margin: 20px auto; border-collapse: collapse; width: 90%; }
-th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
-th { background-color: #ffebcc; }
-#mainDiv, #managerDiv { display: none; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AH STORE</title>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body><h1>برنامج AH STORE - مدير ومسوقين</h1><div id="loginDiv">
-    <input type="text" id="username" placeholder="اكتب اسمك">
-    <button onclick="login()">تسجيل الدخول</button>
-</div><div id="mainDiv">
-    <h2>مرحبا <span id="currentUser"></span></h2><div class="card">
-    <h3>فكرة اليوم</h3>
-    <p id="idea"></p>
-    <h3>نصيحة تسويقية</h3>
-    <p id="tip"></p>
-    <h3>تحفيزك اليومي</h3>
-    <p id="motivation"></p>
-</div>
+<body class="bg-gradient-to-br from-pink-100 to-yellow-100 min-h-screen flex items-center justify-center"><div class="w-full max-w-md"><!-- Login --><div id="loginDiv" class="bg-white p-6 rounded-2xl shadow-xl text-center">
+<h2 class="text-2xl font-bold mb-4">AH STORE 💖</h2>
+<input id="username" class="w-full p-3 border rounded-xl mb-3" placeholder="اكتب اسمك">
+<button onclick="login()" class="w-full bg-pink-500 text-white p-3 rounded-xl">دخول</button>
+</div><!-- User --><div id="mainDiv" class="hidden bg-white p-6 rounded-2xl shadow-xl">
+<h3 class="text-xl mb-3">اهلا <span id="user"></span> 👋</h3><div class="bg-pink-50 p-4 rounded-xl mb-4">
+<p id="idea" class="font-bold"></p>
+<p id="motivation" class="text-sm mt-2"></p>
+</div><textarea id="note" class="w-full p-3 border rounded-xl" placeholder="اكتب ملاحظتك..."></textarea><button onclick="addNote()" class="w-full bg-green-500 text-white p-3 rounded-xl mt-2">حفظ</button>
 
-<div class="card">
-    <h3>اقتراحاتك اليومية</h3>
-    <textarea id="suggestionInput" placeholder="اكتب اقتراحك هنا"></textarea><br>
-    <button onclick="addSuggestion()">أضف الاقتراح</button>
-    <ul id="suggestionList"></ul>
-</div>
+<ul id="list" class="mt-4 text-sm"></ul><button onclick="logout()" class="w-full bg-gray-400 text-white p-2 rounded-xl mt-3">خروج</button>
 
-<div class="card">
-    <h3>ملاحظاتك اليومية</h3>
-    <textarea id="commentInput" placeholder="اكتب ملاحظتك هنا"></textarea><br>
-    <button onclick="addComment()">أضف الملاحظة</button>
-    <ul id="commentList"></ul>
-</div>
+</div><!-- Manager --><div id="managerDiv" class="hidden bg-white p-6 rounded-2xl shadow-xl">
+<h3 class="text-xl mb-3">لوحة المدير 👑</h3><div id="report" class="bg-yellow-100 p-3 rounded-xl mb-3 text-sm"></div><div class="overflow-auto max-h-64">
+<table class="w-full text-sm">
+<thead><tr class="bg-gray-100"><th>الاسم</th><th>الملاحظات</th></tr></thead>
+<tbody id="table"></tbody>
+</table>
+</div><button onclick="logout()" class="w-full bg-gray-400 text-white p-2 rounded-xl mt-3">خروج</button>
 
-<button onclick="logout()">تسجيل الخروج</button>
+</div></div><!-- Firebase --><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script><script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBWS4bOO7SQ8TYJaHJ--6VJMjOONy9Iz0o",
+  authDomain: "ah-store-51aa9.firebaseapp.com",
+  projectId: "ah-store-51aa9",
+  storageBucket: "ah-store-51aa9.firebasestorage.app",
+  messagingSenderId: "481821079697",
+  appId: "1:481821079697:web:2a3784f09238d3980de730"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-</div><div id="managerDiv">
-    <h2>لوحة المدير</h2>
-    <table id="managerTable">
-        <thead>
-            <tr>
-                <th>المسوق</th>
-                <th>ملاحظات اليوم</th>
-                <th>اقتراحات اليوم</th>
-                <th>إجمالي النقاط</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    <div id="dailyReport"></div>
-    <button onclick="logout()">تسجيل الخروج</button>
-</div><script>
-let currentUser = null;
-const ideas = ["استخدم فيديو قصير للمنتج", "اعرض المنتج بطريقة مختلفة", "صوّر المنتج مع خلفية جذابة", "اعمل خصم محدود", "اصنع قصة صغيرة حول المنتج"];
-const tips = ["نشر المحتوى باستمرار يجذب متابعين أكثر", "استخدم الهاشتاجات المناسبة", "ركز على ميزة واحدة في كل منشور", "التفاعل مع التعليقات يزيد المبيعات"];
-const motivations = ["كل يوم فرصة جديدة للنجاح! 💪", "ابدأ اليوم وكن الأفضل! 🚀", "التحديات تصنع الأفضل! 🌟", "كل خطوة صغيرة تقربك من الهدف 💖"];
-let usedIndices = {idea:[], tip:[], motivation:[]};
+let currentUser="";
+
+const ideas=["اعرضي المنتج بفيديو","نزلي ستوري جذابة","اعملي عرض خاص"];
+const motiv=["انتي قدها 💪","كملي 🔥","هتنجحي 💖","انتي قوية 🌟"];
 
 function login(){
-    const username = document.getElementById("username").value.trim();
-    if(!username){ alert("اكتب اسمك من فضلك!"); return; }
-    currentUser = username;
-    
-    if(!localStorage.getItem("salesData")) localStorage.setItem("salesData", JSON.stringify({}));
-    let salesData = JSON.parse(localStorage.getItem("salesData"));
+let name=document.getElementById("username").value.trim();
+if(!name) return alert("اكتبي اسمك");
+currentUser=name;
 
-    if(username.toLowerCase() === "manager"){
-        document.getElementById("loginDiv").style.display="none";
-        document.getElementById("managerDiv").style.display="block";
-        renderManager();
-        return;
-    }
-
-    if(!salesData[username]) salesData[username] = {points:0, comments:[], suggestions:[], lastVisit: null};
-    localStorage.setItem("salesData", JSON.stringify(salesData));
-
-    document.getElementById("loginDiv").style.display="none";
-    document.getElementById("mainDiv").style.display="block";
-    document.getElementById("currentUser").innerText = currentUser;
-
-    showContent();
-    loadComments();
-    loadSuggestions();
-    checkMotivation();
+if(name.toLowerCase()==="manager"){
+document.getElementById("loginDiv").classList.add("hidden");
+document.getElementById("managerDiv").classList.remove("hidden");
+loadManager();
+return;
 }
 
-function logout(){
-    currentUser = null;
-    document.getElementById("loginDiv").style.display="block";
-    document.getElementById("mainDiv").style.display="none";
-    document.getElementById("managerDiv").style.display="none";
-    document.getElementById("username").value = "";
+document.getElementById("loginDiv").classList.add("hidden");
+document.getElementById("mainDiv").classList.remove("hidden");
+document.getElementById("user").innerText=name;
+
+showDaily();
+loadNotes();
 }
 
-function getRandom(arr,key){
-    if(usedIndices[key].length === arr.length) usedIndices[key]=[];
-    let available = arr.map((_,i)=>i).filter(i=>!usedIndices[key].includes(i));
-    let idx = available[Math.floor(Math.random()*available.length)];
-    usedIndices[key].push(idx);
-    return arr[idx];
+function logout(){ location.reload(); }
+
+function showDaily(){
+let d=new Date().getDate();
+idea.innerText=ideas[d%ideas.length];
+motivation.innerText=motiv[d%motiv.length];
 }
 
-function showContent(){
-    document.getElementById("idea").innerText = getRandom(ideas,'idea');
-    document.getElementById("tip").innerText = getRandom(tips,'tip');
-    document.getElementById("motivation").innerText = getRandom(motivations,'motivation');
+function addNote(){
+let val=document.getElementById("note").value;
+if(!val) return;
+
+db.collection("users").doc(currentUser).collection("notes").add({
+text:val,
+date:new Date().toLocaleDateString()
+});
+
+note.value="";
+loadNotes();
 }
 
-function addComment(){
-    const val = document.getElementById("commentInput").value.trim();
-    if(val){
-        let salesData = JSON.parse(localStorage.getItem("salesData"));
-        salesData[currentUser].comments.push({text: val, date: new Date().toLocaleDateString()});
-        localStorage.setItem("salesData", JSON.stringify(salesData));
-        document.getElementById("commentInput").value="";
-        loadComments();
-    }
+function loadNotes(){
+let ul=document.getElementById("list");
+ul.innerHTML="";
+
+db.collection("users").doc(currentUser).collection("notes")
+.get().then(res=>{
+res.forEach(doc=>{
+let li=document.createElement("li");
+li.innerText=doc.data().date+" - "+doc.data().text;
+ul.appendChild(li);
+});
+});
 }
 
-function loadComments(){
-    const ul = document.getElementById("commentList");
-    ul.innerHTML="";
-    let salesData = JSON.parse(localStorage.getItem("salesData"));
-    salesData[currentUser].comments.forEach(c=>{
-        const li=document.createElement("li");
-        li.innerText=`${c.date}: ${c.text}`;
-        ul.appendChild(li);
-    });
-}
+function loadManager(){
+let tbody=document.getElementById("table");
+tbody.innerHTML="";
+let today=new Date().toLocaleDateString();
+let total=0;
 
-function addSuggestion(){
-    const val = document.getElementById("suggestionInput").value.trim();
-    if(val){
-        let salesData = JSON.parse(localStorage.getItem("salesData"));
-        salesData[currentUser].suggestions.push({text: val, date: new Date().toLocaleDateString()});
-        localStorage.setItem("salesData", JSON.stringify(salesData));
-        document.getElementById("suggestionInput").value="";
-        loadSuggestions();
-    }
-}
+db.collection("users").get().then(users=>{
+users.forEach(user=>{
+let name=user.id;
 
-function loadSuggestions(){
-    const ul = document.getElementById("suggestionList");
-    ul.innerHTML="";
-    let salesData = JSON.parse(localStorage.getItem("salesData"));
-    salesData[currentUser].suggestions.forEach(s=>{
-        const li=document.createElement("li");
-        li.innerText=`${s.date}: ${s.text}`;
-        ul.appendChild(li);
-    });
-}
+db.collection("users").doc(name).collection("notes").get().then(notes=>{
+let texts=[];
+notes.forEach(n=>{
+texts.push(n.data().text);
+if(n.data().date===today) total++;
+});
 
-function renderManager(){
-    let salesData = JSON.parse(localStorage.getItem("salesData"));
-    const tbody = document.querySelector("#managerTable tbody");
-    tbody.innerHTML="";
-    let today = new Date().toLocaleDateString();
-    let dailyReportText = `اليوم: ${today}<br>`;
-    let dailyUsers=0, dailyComments=0, dailySuggestions=0;
-    for(let user in salesData){
-        if(user.toLowerCase()==="manager") continue;
-        const commentsToday = salesData[user].comments.filter(c=>c.date===today);
-        const suggestionsToday = salesData[user].suggestions.filter(s=>s.date===today);
-        if(commentsToday.length || suggestionsToday.length) dailyUsers++;
-        dailyComments += commentsToday.length;
-        dailySuggestions += suggestionsToday.length;
-        const tr=document.createElement("tr");
-        tr.innerHTML=`<td>${user}</td><td>${commentsToday.map(c=>c.text).join(", ")}</td><td>${suggestionsToday.map(s=>s.text).join(", ")}</td><td>${salesData[user].points}</td>`;
-        tbody.appendChild(tr);
-    }
-    dailyReportText += `عدد المسوقين اليوم: ${dailyUsers}, عدد الملاحظات: ${dailyComments}, عدد الاقتراحات: ${dailySuggestions}`;
-    document.getElementById("dailyReport").innerHTML=dailyReportText;
-}
+let tr=document.createElement("tr");
+tr.innerHTML=`<td>${name}</td><td>${texts.join(" , ")}</td>`;
+tbody.appendChild(tr);
 
-function checkMotivation(){
-    let salesData = JSON.parse(localStorage.getItem("salesData"));
-    const today = new Date().toLocaleDateString();
-    if(!salesData[currentUser].lastVisit || salesData[currentUser].lastVisit!==today){
-        alert("💡 افتح البرنامج اليوم للحصول على فكرة جديدة وتحفيزك اليومي!");
-        salesData[currentUser].lastVisit = today;
-        localStorage.setItem("salesData", JSON.stringify(salesData));
-    }
-}
+});
+});
 
-setInterval(()=>{if(currentUser && currentUser.toLowerCase() !== "manager") showContent();},1000*60*60*24);
+document.getElementById("report").innerText=`📊 عدد الملاحظات اليوم: ${total}`;
+});
+}
 </script></body>
 </html>
