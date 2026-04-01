@@ -32,6 +32,8 @@
 
 <ul id="list" class="mt-4 text-sm"></ul>
 
+<div id="notif" class="hidden bg-green-200 text-green-900 p-2 rounded-xl mt-2 text-center font-semibold"></div>
+
 <button onclick="logout()" class="w-full bg-gray-400 text-white p-2 rounded-xl mt-3">خروج</button>
 </div>
 
@@ -47,6 +49,7 @@
 <thead><tr class="bg-gray-100"><th>الاسم</th><th>الملاحظات</th></tr></thead>
 <tbody id="table"></tbody>
 </table>
+<div id="emptyMsg" class="text-center mt-2 text-gray-500 font-semibold"></div>
 </div>
 
 <button onclick="logout()" class="w-full bg-gray-400 text-white p-2 rounded-xl mt-3">خروج</button>
@@ -74,8 +77,8 @@ let currentUser="";
 const ideas=["اعرضي المنتج بفيديو","نزلي ستوري جذابة","اعملي عرض خاص"];
 const motiv=["انتي قدها 💪","كملي 🔥","هتنجحي 💖","انتي قوية 🌟"];
 
-// تسجيل دخول
-function login(){
+// تسجيل الدخول
+async function login(){
   let name=document.getElementById("username").value.trim();
   if(!name) return alert("اكتبي اسمك");
   currentUser=name;
@@ -87,7 +90,7 @@ function login(){
     
     document.getElementById("loginDiv").classList.add("hidden");
     document.getElementById("managerDiv").classList.remove("hidden");
-    loadManager();
+    await loadManager();
     return;
   }
 
@@ -96,13 +99,13 @@ function login(){
   document.getElementById("user").innerText=name;
 
   showDaily();
-  loadNotes();
+  await loadNotes();
 }
 
 // خروج
 function logout(){ location.reload(); }
 
-// عرض الجمل اليومية تلقائيًا
+// الجمل اليومية
 function showDaily(){
   let today=new Date();
   let dayIndex = today.getFullYear()*365 + today.getMonth()*30 + today.getDate();
@@ -110,37 +113,43 @@ function showDaily(){
   document.getElementById("motivation").innerText = motiv[dayIndex % motiv.length];
 }
 
-// إضافة ملاحظة
-function addNote(){
+// إضافة ملاحظة مع إشعار
+async function addNote(){
   let val=document.getElementById("note").value;
   if(!val) return;
 
-  db.collection("users").doc(currentUser).collection("notes").add({
-    text:val,
-    date:new Date().toLocaleDateString()
+  const userRef = db.collection("users").doc(currentUser);
+  await userRef.set({ name: currentUser }, { merge: true });
+  await userRef.collection("notes").add({
+    text: val,
+    date: new Date().toLocaleDateString()
   });
 
   document.getElementById("note").value="";
-  loadNotes();
+  await loadNotes();
+
+  // إشعار
+  let notif = document.getElementById("notif");
+  notif.innerText = "✅ تمت إضافة الملاحظة بنجاح!";
+  notif.classList.remove("hidden");
+  setTimeout(()=>{ notif.classList.add("hidden"); }, 3000);
 }
 
 // تحميل ملاحظات المسوق
-function loadNotes(){
+async function loadNotes(){
   let ul=document.getElementById("list");
   ul.innerHTML="";
 
-  db.collection("users").doc(currentUser).collection("notes")
-    .get().then(res=>{
-      res.forEach(doc=>{
-        let li=document.createElement("li");
-        li.innerText=doc.data().date+" - "+doc.data().text;
-        ul.appendChild(li);
-      });
-    });
+  const notesSnapshot = await db.collection("users").doc(currentUser).collection("notes").get();
+  notesSnapshot.forEach(doc=>{
+    let li=document.createElement("li");
+    li.innerText=doc.data().date+" - "+doc.data().text;
+    ul.appendChild(li);
+  });
 }
 
 // لوحة المدير
-function loadManager(){
+async function loadManager(){
   let tbody=document.getElementById("table");
   let today=new Date().toLocaleDateString();
   let total=0;
@@ -149,38 +158,43 @@ function loadManager(){
   tbody.innerHTML="";
   document.getElementById("report").innerText="";
   document.getElementById("leaderboard").innerText="";
+  document.getElementById("emptyMsg").innerText="";
 
-  db.collection("users").get().then(users=>{
-    users.forEach(user=>{
-      let name=user.id;
+  const usersSnapshot = await db.collection("users").get();
+  let anyData=false;
 
-      db.collection("users").doc(name).collection("notes").get().then(notes=>{
-        let texts=[];
-        let countToday=0;
+  for(const userDoc of usersSnapshot.docs){
+    let name = userDoc.id;
+    const notesSnapshot = await db.collection("users").doc(name).collection("notes").get();
+    let texts=[], countToday=0;
 
-        notes.forEach(n=>{
-          texts.push(n.data().text);
-          if(n.data().date===today) countToday++;
-        });
-
-        total += countToday;
-        leaderboardObj[name] = countToday;
-
-        let tr=document.createElement("tr");
-        tr.innerHTML=`<td>${name}</td><td>${texts.join(" , ")}</td>`;
-        tbody.appendChild(tr);
-
-        // ترتيب أفضل المسوقين
-        let sorted = Object.entries(leaderboardObj).sort((a,b)=>b[1]-a[1]);
-        let boardHtml = "🏆 ترتيب أفضل المسوقين اليوم:\n";
-        sorted.forEach(([u, c], idx)=>{
-          if(c>0) boardHtml+=`${idx+1}. ${u} - ${c} ملاحظات\n`;
-        });
-        document.getElementById("leaderboard").innerText = boardHtml;
-        document.getElementById("report").innerText=`📊 عدد الملاحظات اليوم: ${total}`;
-      });
+    notesSnapshot.forEach(n=>{
+      texts.push(n.data().text);
+      if(n.data().date===today) countToday++;
     });
+
+    if(texts.length>0) anyData=true;
+
+    total += countToday;
+    leaderboardObj[name] = countToday;
+
+    if(texts.length>0){
+      let tr=document.createElement("tr");
+      tr.innerHTML=`<td>${name}</td><td>${texts.join(" , ")}</td>`;
+      tbody.appendChild(tr);
+    }
+  }
+
+  // تحديث Leaderboard
+  let sorted = Object.entries(leaderboardObj).sort((a,b)=>b[1]-a[1]);
+  let boardHtml = "🏆 ترتيب أفضل المسوقين اليوم:\n";
+  sorted.forEach(([u, c], idx)=>{
+    if(c>0) boardHtml+=`${idx+1}. ${u} - ${c} ملاحظات\n`;
   });
+  document.getElementById("leaderboard").innerText = boardHtml;
+  document.getElementById("report").innerText=`📊 عدد الملاحظات اليوم: ${total}`;
+
+  if(!anyData) document.getElementById("emptyMsg").innerText="لا توجد ملاحظات حتى الآن";
 }
 </script>
 
