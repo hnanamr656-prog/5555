@@ -14,7 +14,7 @@
 <div id="loginDiv" class="bg-white p-6 rounded-2xl shadow-xl text-center">
 <h2 class="text-2xl font-bold mb-4">AH STORE 💖</h2>
 <input id="username" class="w-full p-3 border rounded-xl mb-3" placeholder="اكتب اسمك">
-<input id="managerPass" type="password" class="w-full p-3 border rounded-xl mb-3 hidden" placeholder="كلمة السر للمدير">
+<input id="password" type="password" class="w-full p-3 border rounded-xl mb-3" placeholder="كلمة السر للمدير">
 <button onclick="login()" class="w-full bg-pink-500 text-white p-3 rounded-xl">دخول</button>
 </div>
 
@@ -53,11 +53,12 @@
 
 </div>
 
-<!-- Firebase compat -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyD5UbkGQsKO-yfnYhaOBHZrm4LxNhzfSAQ",
   authDomain: "ah-store-1dcb4.firebaseapp.com",
@@ -70,31 +71,27 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let currentUser="";
+let currentUser = "";
 
-const ideas=["اعرضي المنتج بفيديو","نزلي ستوري جذابة","اعملي عرض خاص"];
-const motiv=["انتي قدها 💪","كملي 🔥","هتنجحي 💖","انتي قوية 🌟"];
+const ideas = ["اعرضي المنتج بفيديو","نزلي ستوري جذابة","اعملي عرض خاص"];
+const motiv = ["انتي قدها 💪","كملي 🔥","هتنجحي 💖","انتي قوية 🌟"];
 
 function login(){
   let name = document.getElementById("username").value.trim();
   if(!name) return alert("اكتبي اسمك");
-  currentUser = name;
-
+  
   // مدير
   if(name.toLowerCase() === "manager"){
-    let passInput = document.getElementById("managerPass");
-    passInput.classList.remove("hidden"); // تظهر خانة الباسورد
-    let pass = passInput.value.trim();
-    if(!pass) return alert("اكتبي كلمة السر للمدير");
+    let pass = document.getElementById("password").value.trim();
     if(pass !== "708090") return alert("كلمة السر غلط");
-
     document.getElementById("loginDiv").classList.add("hidden");
     document.getElementById("managerDiv").classList.remove("hidden");
     loadManager();
     return;
   }
-
-  // مسوق
+  
+  // مسوق عادي
+  currentUser = name;
   document.getElementById("loginDiv").classList.add("hidden");
   document.getElementById("mainDiv").classList.remove("hidden");
   document.getElementById("user").innerText = name;
@@ -115,50 +112,55 @@ function addNote(){
   let val = document.getElementById("note").value;
   if(!val) return;
 
+  // لو المسوق جديد نعمل doc
+  db.collection("users").doc(currentUser).set({}, { merge: true });
+
+  // حفظ الملاحظة
   db.collection("users").doc(currentUser).collection("notes").add({
     text: val,
     date: new Date().toLocaleDateString()
   });
 
-  document.getElementById("note").value="";
+  document.getElementById("note").value = "";
   loadNotes();
 }
 
 function loadNotes(){
   let ul = document.getElementById("list");
-  ul.innerHTML="";
+  ul.innerHTML = "";
 
   db.collection("users").doc(currentUser).collection("notes")
-  .get().then(res=>{
-    res.forEach(doc=>{
-      let li=document.createElement("li");
-      li.innerText = doc.data().date + " - " + doc.data().text;
-      ul.appendChild(li);
+    .get().then(res => {
+      res.forEach(doc => {
+        let li = document.createElement("li");
+        li.innerText = doc.data().date + " - " + doc.data().text;
+        ul.appendChild(li);
+      });
     });
-  });
 }
 
 function loadManager(){
-  let tbody=document.getElementById("table");
-  tbody.innerHTML="";
-  let today=new Date().toLocaleDateString();
-  let total=0;
+  let tbody = document.getElementById("table");
+  tbody.innerHTML = "";
+  let today = new Date().toLocaleDateString();
+  let total = 0;
 
-  db.collection("users").get().then(users=>{
-    users.forEach(user=>{
-      let name=user.id;
-      db.collection("users").doc(name).collection("notes").get().then(notes=>{
-        let texts=[];
-        notes.forEach(n=>{
+  db.collection("users").get().then(users => {
+    users.forEach(user => {
+      let name = user.id;
+      db.collection("users").doc(name).collection("notes").get().then(notes => {
+        let texts = [];
+        notes.forEach(n => {
           texts.push(n.data().text);
-          if(n.data().date===today) total++;
+          if(n.data().date === today) total++;
         });
-        let tr=document.createElement("tr");
-        tr.innerHTML=`<td>${name}</td><td>${texts.join(" , ")}</td>`;
+
+        let tr = document.createElement("tr");
+        tr.innerHTML = `<td>${name}</td><td>${texts.join(" , ")}</td>`;
         tbody.appendChild(tr);
       });
     });
-    document.getElementById("report").innerText=`📊 عدد الملاحظات اليوم: ${total}`;
+    document.getElementById("report").innerText = `📊 عدد الملاحظات اليوم: ${total}`;
   });
 }
 </script>
