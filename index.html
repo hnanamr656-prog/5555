@@ -54,24 +54,26 @@
 </div>
 
 <!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, doc, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
 
-<script>
 const firebaseConfig = {
-  apiKey: "AIzaSyD5UbkGQsKO-yfnYhaOBHZrm4LxNhzfSAQ",
-  authDomain: "ah-store-1dcb4.firebaseapp.com",
-  projectId: "ah-store-1dcb4",
-  storageBucket: "ah-store-1dcb4.firebasestorage.app",
-  messagingSenderId: "15273707646",
-  appId: "1:15273707646:web:d3cae1122556e61093302f",
-  measurementId: "G-PW2NZ5YDFK"
+  apiKey: "AIzaSyDjJhFE4SzwmZDrpz3278Gq-OX1jQgFAVY",
+  authDomain: "ah-store-96086.firebaseapp.com",
+  projectId: "ah-store-96086",
+  storageBucket: "ah-store-96086.firebasestorage.app",
+  messagingSenderId: "79701369482",
+  appId: "1:79701369482:web:70d0a1e8d7dc59a173c373",
+  measurementId: "G-3C9M1N18LN"
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const db = getFirestore(app);
 
 let currentUser="";
-
 const ideas=["اعرضي المنتج بفيديو","نزلي ستوري جذابة","اعملي عرض خاص"];
 const motiv=["انتي قدها 💪","كملي 🔥","هتنجحي 💖","انتي قوية 🌟"];
 
@@ -104,54 +106,47 @@ function showDaily(){
   motivation.innerText = motiv[d % motiv.length];
 }
 
-function addNote(){
+async function addNote(){
   let val = document.getElementById("note").value.trim();
   if(!val) return;
   
-  db.collection("users").doc(currentUser).collection("notes").add({
+  await addDoc(collection(db, "users", currentUser, "notes"), {
     text: val,
     date: new Date().toLocaleDateString()
-  }).then(() => {
-    document.getElementById("note").value = "";
-    loadNotes();
   });
+  document.getElementById("note").value = "";
+  loadNotes();
 }
 
-function loadNotes(){
+async function loadNotes(){
   let ul = document.getElementById("list");
   ul.innerHTML = "";
-  db.collection("users").doc(currentUser).collection("notes")
-    .get().then(res => {
-      res.forEach(doc => {
-        let li = document.createElement("li");
-        li.innerText = doc.data().date + " - " + doc.data().text;
-        ul.appendChild(li);
-      });
-    });
+  const snapshot = await getDocs(collection(db, "users", currentUser, "notes"));
+  snapshot.forEach(docSnap => {
+    let li = document.createElement("li");
+    li.innerText = docSnap.data().date + " - " + docSnap.data().text;
+    ul.appendChild(li);
+  });
 }
 
-function loadManager(){
+async function loadManager(){
   let tbody = document.getElementById("table");
   tbody.innerHTML = "";
-  let today = new Date().toLocaleDateString();
   let total = 0;
 
-  db.collection("users").get().then(users => {
-    users.forEach(user => {
-      let name = user.id;
-      db.collection("users").doc(name).collection("notes").get().then(notes => {
-        let texts = [];
-        notes.forEach(n => {
-          texts.push(n.data().text);
-          if(n.data().date === today) total++;
-        });
-        let tr = document.createElement("tr");
-        tr.innerHTML = `<td>${name}</td><td>${texts.join(" , ")}</td>`;
-        tbody.appendChild(tr);
-      });
+  const usersSnap = await getDocs(collection(db, "users"));
+  for(let userDoc of usersSnap.docs){
+    const notesSnap = await getDocs(collection(db, "users", userDoc.id, "notes"));
+    let texts = [];
+    notesSnap.forEach(n => {
+      texts.push(n.data().text);
+      if(n.data().date === new Date().toLocaleDateString()) total++;
     });
-    document.getElementById("report").innerText = `📊 عدد الملاحظات اليوم: ${total}`;
-  });
+    let tr = document.createElement("tr");
+    tr.innerHTML = `<td>${userDoc.id}</td><td>${texts.join(" , ")}</td>`;
+    tbody.appendChild(tr);
+  }
+  document.getElementById("report").innerText = `📊 عدد الملاحظات اليوم: ${total}`;
 }
 </script>
 
